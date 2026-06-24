@@ -30,6 +30,10 @@ a single JSON object that captures what's known. A FigJam plugin renders your JS
    Mark inferences or weak evidence as `"confidence": "low"`.
 7. Put anything that doesn't fit a fixed section into `extra[]` (see schema). Don't force-fit.
 8. Do not fabricate metrics, quotes, or sources. If unsure, lower the confidence or omit.
+9. **`sources[]` is the provenance trail.** List every source you actually drew from: its `name`,
+   a `date` if known, a `url` if there is one, and under `items` the specific data points you
+   pulled from it. The plugin renders each source as its own group with a clickable link sticky,
+   so a reader can trace any insight back to where it came from. Cite real sources only.
 
 ### Schema (fixed keys)
 
@@ -82,6 +86,15 @@ a single JSON object that captures what's known. A FigJam plugin renders your JS
 
   "okrs": [ "<crew objectives and key results>" ],
 
+  "sources": [
+    {
+      "name": "<source name, e.g. Discovery workshop>",
+      "date": "<optional date, e.g. 13 Apr 2026>",
+      "url":  "<optional link to the source>",
+      "items": [ "<each data point you pulled FROM this source>", "..." ]
+    }
+  ],
+
   "extra": [
     { "title": "<custom section title>", "items": [ "<item>", "..." ] },
     { "title": "<custom section with sub-groups>",
@@ -102,6 +115,8 @@ a single JSON object that captures what's known. A FigJam plugin renders your JS
   (nested). Omit `extra` entirely if you have nothing.
 - Omit any fixed key you have nothing for, OR set it to `[]` — both are safe. Prefer `[]` for the
   core canvas sections so the team sees the gap.
+- `sources[]` renders as a "Sources" section: one sub-group per source, titled `name · date`,
+  with a clickable link sticky (when `url` is given) followed by that source's data points.
 
 ### Minimal valid example
 
@@ -123,6 +138,11 @@ a single JSON object that captures what's known. A FigJam plugin renders your JS
   "collaborations": { "overlaps": [], "partnerships": ["Payments squad"], "forums": [] },
   "useCases": ["First-time SMB signup"],
   "okrs": ["KR: Activation 55% -> 70%"],
+  "sources": [
+    { "name": "Discovery workshop", "date": "13 Apr 2026", "url": "https://example.com/notes",
+      "items": ["Billing is the main drop-off point", "Ops admins want to delegate setup"] },
+    { "name": "Amplitude funnel", "date": "Apr 2026", "items": ["Step 3 drop-off: 30%"] }
+  ],
   "extra": [{ "title": "Open Questions", "items": ["Do we hard-gate on payment?"] }]
 }
 ```

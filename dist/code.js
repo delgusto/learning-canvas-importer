@@ -61,6 +61,7 @@
     extra: hex("#94a3b8")
   };
   var EMPTY_FILL = hex("#e2e8f0");
+  var LINK_FILL = hex("#bfdbfe");
   var PAD = 24;
   var GAP = 28;
   var GAP_TOP = 56;
@@ -80,7 +81,7 @@
       if (typeof it === "string") return { text: it };
       if (it && typeof it === "object") {
         const o = it;
-        return { text: String((_a = o.text) != null ? _a : ""), source: o.source, owner: o.owner, confidence: o.confidence };
+        return { text: String((_a = o.text) != null ? _a : ""), source: o.source, owner: o.owner, confidence: o.confidence, url: o.url };
       }
       return { text: "" };
     }).filter((x) => x.text.trim().length > 0);
@@ -100,9 +101,16 @@
   function makeSticky(item, fill) {
     const s = figma.createSticky();
     const empty = item === null;
-    s.fills = [{ type: "SOLID", color: empty ? EMPTY_FILL : fill }];
+    const isLink = !empty && !!item.url;
+    s.fills = [{ type: "SOLID", color: empty ? EMPTY_FILL : isLink ? LINK_FILL : fill }];
     s.text.fontName = FONT;
-    s.text.characters = empty ? "No data yet" : stickyText(item);
+    s.text.characters = empty ? "No data yet" : isLink ? "\u{1F517} " + item.url : stickyText(item);
+    if (isLink) {
+      try {
+        s.text.setRangeHyperlink(0, s.text.characters.length, { type: "URL", value: item.url });
+      } catch (e) {
+      }
+    }
     STICKY_W = s.width;
     return s;
   }
@@ -190,9 +198,21 @@
       children: e.children ? e.children.map((c, j) => ({ key: "c" + j, title: c.title || "Group " + (j + 1), _items: c.items || [] })) : void 0
     }));
   }
+  function sourcesDefs(data) {
+    const src = Array.isArray(data.sources) ? data.sources : [];
+    if (!src.length) return [];
+    const children = src.map((s, i) => {
+      const title = (s.name || "Source " + (i + 1)) + (s.date ? " \xB7 " + s.date : "");
+      const items = [];
+      if (s.url) items.push({ text: s.url, url: s.url });
+      if (Array.isArray(s.items)) items.push(...s.items);
+      return { key: "src" + i, title, _items: items };
+    });
+    return [{ key: "__sources", title: "Sources", colorKey: "slate", children }];
+  }
   async function buildLearningCanvas(data) {
     await figma.loadFontAsync(FONT);
-    const defs = TEMPLATE.concat(extraDefs(data));
+    const defs = TEMPLATE.concat(extraDefs(data)).concat(sourcesDefs(data));
     const rows = [];
     let cur = [];
     let curW = 0;

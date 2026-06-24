@@ -10,13 +10,23 @@
 
 // A single sticky. The agent may send a bare string (auto-wrapped) or an object.
 // Only `text` is required; the rest are optional metadata shown under the text.
-type Item = string | { text: string; source?: string; owner?: string; confidence?: string };
+// `url` makes the sticky a clickable link (used by Sources).
+type Item = string | { text: string; source?: string; owner?: string; confidence?: string; url?: string };
 
 // A flexible extra section the agent can append beyond the fixed canvas.
 interface ExtraSection {
   title?: string;
   items?: Item[];
   children?: { title?: string; items?: Item[] }[];
+}
+
+// One source/reference: a named (optionally dated, optionally linked) origin,
+// with the data points pulled from it listed underneath.
+interface SourceEntry {
+  name: string;
+  date?: string;
+  url?: string;
+  items?: Item[];
 }
 
 // The whole payload. Fixed keys below are all optional — missing = empty section.
@@ -34,6 +44,7 @@ interface CanvasData {
   collaborations?: { overlaps?: Item[]; partnerships?: Item[]; forums?: Item[] };
   useCases?: Item[];
   okrs?: Item[];
+  sources?: SourceEntry[];
   extra?: ExtraSection[];
   [key: string]: unknown; // tolerate unknown keys without crashing
 }
@@ -105,6 +116,7 @@ const PALETTE: Record<string, Color> = {
   fuchsia: hex("#d946ef"), extra: hex("#94a3b8"),
 };
 const EMPTY_FILL = hex("#e2e8f0"); // faint grey for "No data yet" placeholders
+const LINK_FILL = hex("#bfdbfe"); // light blue for clickable source-link stickies
 
 // ----------------------------------------------------------------------------
 // Layout constants (px). Tune here.
@@ -128,14 +140,16 @@ let STICKY_W = 240;      // measured from the first real sticky at runtime
 // Helpers
 // ----------------------------------------------------------------------------
 
-function normItems(val: unknown): { text: string; source?: string; owner?: string; confidence?: string }[] {
+type NormItem = { text: string; source?: string; owner?: string; confidence?: string; url?: string };
+
+function normItems(val: unknown): NormItem[] {
   if (!Array.isArray(val)) return [];
   return val
-    .map((it) => {
+    .map((it): NormItem => {
       if (typeof it === "string") return { text: it };
       if (it && typeof it === "object") {
         const o = it as Record<string, unknown>;
-        return { text: String(o.text ?? ""), source: o.source as string, owner: o.owner as string, confidence: o.confidence as string };
+        return { text: String(o.text ?? ""), source: o.source as string, owner: o.owner as string, confidence: o.confidence as string, url: o.url as string };
       }
       return { text: "" };
     })
@@ -156,12 +170,20 @@ function stickyText(item: { text: string; source?: string; owner?: string; confi
   return t;
 }
 
-function makeSticky(item: { text: string } | null, fill: Color): StickyNode {
+function makeSticky(item: NormItem | null, fill: Color): StickyNode {
   const s = figma.createSticky();
   const empty = item === null;
-  s.fills = [{ type: "SOLID", color: empty ? EMPTY_FILL : fill }];
+  const isLink = !empty && !!item!.url;
+  s.fills = [{ type: "SOLID", color: empty ? EMPTY_FILL : isLink ? LINK_FILL : fill }];
   s.text.fontName = FONT;
-  s.text.characters = empty ? "No data yet" : stickyText(item as any);
+  s.text.characters = empty ? "No data yet" : isLink ? "🔗 " + item!.url : stickyText(item!);
+  if (isLink) {
+    // Make the whole sticky a clickable link. Sticky text sublayers support
+    // hyperlinks; wrap in try/catch so an API change degrades to plain URL text.
+    try {
+      s.text.setRangeHyperlink(0, s.text.characters.length, { type: "URL", value: item!.url! });
+    } catch (e) { /* leave the URL as visible, copyable text */ }
+  }
   STICKY_W = s.width; // stickies are a fixed width; capture it once for layout math
   return s;
 }
@@ -272,6 +294,22 @@ function extraDefs(data: CanvasData): SectionDef[] {
   }));
 }
 
+// Turn data.sources[] into a single "Sources" section whose sub-sections are the
+// sources — titled "Name · Date", with a clickable link sticky (if a url is given)
+// followed by the data points pulled from that source.
+function sourcesDefs(data: CanvasData): SectionDef[] {
+  const src = Array.isArray(data.sources) ? data.sources : [];
+  if (!src.length) return [];
+  const children: ChildDef[] = src.map((s, i) => {
+    const title = (s.name || "Source " + (i + 1)) + (s.date ? " · " + s.date : "");
+    const items: Item[] = [];
+    if (s.url) items.push({ text: s.url, url: s.url }); // first sticky = the link
+    if (Array.isArray(s.items)) items.push(...s.items);
+    return { key: "src" + i, title, _items: items };
+  });
+  return [{ key: "__sources", title: "Sources", colorKey: "slate", children }];
+}
+
 // ----------------------------------------------------------------------------
 // Orchestration
 // ----------------------------------------------------------------------------
@@ -279,7 +317,7 @@ function extraDefs(data: CanvasData): SectionDef[] {
 async function buildLearningCanvas(data: CanvasData): Promise<void> {
   await figma.loadFontAsync(FONT); // required before setting any sticky text
 
-  const defs = TEMPLATE.concat(extraDefs(data));
+  const defs = TEMPLATE.concat(extraDefs(data)).concat(sourcesDefs(data));
 
   // Pass 1: assign each section to a row by analytic width (sticky width is fixed),
   // wrapping when a row would exceed MAX_ROW_W. Order follows the sketch.

@@ -100,6 +100,37 @@
 
   "_intentionally_missing": "note: 'requirements' present but try deleting a key to confirm empty-section placeholder. 'collaborations.forums' etc all filled here.",
 
+  "sources": [
+    {
+      "name": "Discovery workshop",
+      "date": "13 Apr 2026",
+      "url": "https://example.com/notes/discovery-workshop",
+      "items": [
+        "Team aligned that billing is the main drop-off point",
+        { "text": "Ops admins want to delegate setup", "confidence": "high" },
+        "Decision: prototype a wizard before committing to full build"
+      ]
+    },
+    {
+      "name": "Amplitude funnel export",
+      "date": "Apr 2026",
+      "url": "https://example.com/amplitude/onboarding-funnel",
+      "items": [
+        "Step 3 (billing) drop-off: 30%",
+        "Median setup time: 41 min",
+        "Desktop accounts for 82% of signups"
+      ]
+    },
+    {
+      "name": "UX interviews (n=6)",
+      "date": "Mar 2026",
+      "items": [
+        "Users want progress visibility before starting",
+        "Non-technical owners delegate but tool assumes one person"
+      ]
+    }
+  ],
+
   "extra": [
     { "title": "Open Questions", "items": ["Do we hard-gate on payment?", "Mobile onboarding in scope for v1?", "What happens to half-finished sessions after 7 days?"] },
     {

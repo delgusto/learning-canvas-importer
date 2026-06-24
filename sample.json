@@ -36,6 +36,20 @@
   },
   "useCases": ["First-time SMB signup", "Re-onboarding after plan change"],
   "okrs": ["O: Best-in-class onboarding", "KR: Activation 55% -> 70%"],
+  "sources": [
+    {
+      "name": "Discovery workshop",
+      "date": "13 Apr 2026",
+      "url": "https://example.com/notes/discovery-workshop",
+      "items": ["Billing is the main drop-off point", "Ops admins want to delegate setup"]
+    },
+    {
+      "name": "Amplitude funnel export",
+      "date": "Apr 2026",
+      "url": "https://example.com/amplitude/onboarding-funnel",
+      "items": ["Step 3 (billing) drop-off: 30%", "Median setup time: 41 min"]
+    }
+  ],
   "extra": [
     { "title": "Open Questions", "items": ["Do we gate on payment?", "Mobile onboarding scope?"] }
   ]
