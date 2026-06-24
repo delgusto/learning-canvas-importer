@@ -1,0 +1,14 @@
+{
+  "name": "learning-canvas-importer",
+  "version": "0.1.0",
+  "description": "FigJam plugin spike: import Co-pilot JSON, lay out a Learning Canvas of sections + sticky notes.",
+  "scripts": {
+    "build": "esbuild src/code.ts --bundle --outfile=dist/code.js --target=es2017",
+    "watch": "esbuild src/code.ts --bundle --outfile=dist/code.js --target=es2017 --watch"
+  },
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.100.0",
+    "esbuild": "^0.21.5",
+    "typescript": "^5.4.5"
+  }
+}

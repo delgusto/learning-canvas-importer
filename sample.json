@@ -1,0 +1,42 @@
+{
+  "projectSnapshot": [
+    "Self-serve onboarding for SMB accounts",
+    { "text": "Target launch: Q4", "owner": "Priya", "confidence": "high" }
+  ],
+  "problems": {
+    "customers": ["Setup takes 40+ min", { "text": "Users abandon at billing step", "source": "analytics" }],
+    "business": ["High support load from onboarding tickets"]
+  },
+  "opportunities": {
+    "customers": ["Cut time-to-value to under 10 min"],
+    "business": [{ "text": "Reduce support cost ~20%", "confidence": "medium" }]
+  },
+  "successMetrics": ["Activation rate +15%", "Onboarding completion > 70%"],
+  "requirements": ["Guided setup wizard", "Skip + resume later"],
+  "users": ["SMB owners, non-technical", "Ops admins"],
+  "hypotheses": [{ "text": "A wizard lifts activation", "confidence": "medium", "owner": "Dave" }],
+  "solutions": {
+    "currentState": ["Manual setup doc + email"],
+    "competitorAnalysis": [{ "text": "Competitor X has 5-step wizard", "source": "research" }]
+  },
+  "insights": {
+    "dataFeedback": [{ "text": "30% drop-off at step 3", "source": "amplitude" }],
+    "research": [{ "text": "Users want progress visibility", "source": "UX interviews" }]
+  },
+  "constraints": {
+    "risks": ["Billing API rate limits"],
+    "assumptions": ["Most users on desktop"],
+    "issues": ["Legacy accounts lack profile data"],
+    "dependencies": ["Payments team API"]
+  },
+  "collaborations": {
+    "overlaps": ["Growth team's referral work"],
+    "partnerships": ["Payments squad"],
+    "forums": ["Weekly onboarding sync"]
+  },
+  "useCases": ["First-time SMB signup", "Re-onboarding after plan change"],
+  "okrs": ["O: Best-in-class onboarding", "KR: Activation 55% -> 70%"],
+  "extra": [
+    { "title": "Open Questions", "items": ["Do we gate on payment?", "Mobile onboarding scope?"] }
+  ]
+}

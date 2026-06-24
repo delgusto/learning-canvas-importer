@@ -1,0 +1,113 @@
+{
+  "_comment": "Test harness — exercises every edge case: bare strings, metadata objects, long text (soft-cap), empty section (placeholder), missing keys, column wrap (>5 items), and extra[] with both flat items and nested children.",
+
+  "projectSnapshot": [
+    "Self-serve onboarding for SMB accounts",
+    { "text": "Target launch: Q4 FY26", "owner": "Priya", "confidence": "high" },
+    "Replaces the legacy email + PDF setup flow"
+  ],
+
+  "problems": {
+    "customers": [
+      "Setup takes 40+ minutes end to end",
+      { "text": "Users abandon at the billing connection step because they don't have admin card access on hand and there's no way to invite a colleague to finish it for them", "source": "support tickets", "confidence": "high" },
+      "No visibility into how many steps remain"
+    ],
+    "business": [
+      { "text": "High support load — onboarding is the #1 ticket driver", "source": "Zendesk" },
+      "Sales spends time on manual setup calls"
+    ]
+  },
+
+  "opportunities": {
+    "customers": ["Cut time-to-value to under 10 minutes", "Let teams onboard collaboratively"],
+    "business": [{ "text": "Reduce onboarding support cost ~20%", "confidence": "medium" }]
+  },
+
+  "successMetrics": [
+    "Activation rate +15pp",
+    "Onboarding completion > 70%",
+    "Median setup time < 10 min",
+    "Onboarding support tickets -30%"
+  ],
+
+  "requirements": [
+    "Guided multi-step setup wizard",
+    "Skip a step and resume later",
+    "Invite a teammate to complete a step",
+    "Progress indicator with step count",
+    "Works on tablet",
+    "Resumable from email link"
+  ],
+
+  "users": [
+    "SMB owners, non-technical",
+    "Ops admins setting up on the owner's behalf",
+    { "text": "Finance approver (billing step only)", "owner": "persona: Sam" }
+  ],
+
+  "hypotheses": [
+    { "text": "A guided wizard with visible progress lifts activation vs the current doc", "confidence": "medium", "owner": "Dave" },
+    "Letting users invite a teammate reduces billing-step drop-off",
+    "Most abandonment is at billing, not profile setup"
+  ],
+
+  "solutions": {
+    "currentState": ["Manual setup doc emailed after signup", "Occasional 30-min onboarding call from sales"],
+    "competitorAnalysis": [
+      { "text": "Competitor X: 5-step wizard, ~6 min median", "source": "research" },
+      { "text": "Competitor Y: checklist + Slack reminders", "source": "research" },
+      "Comparator Z (adjacent market): video-led onboarding"
+    ]
+  },
+
+  "insights": {
+    "dataFeedback": [
+      { "text": "30% drop-off at step 3 (billing)", "source": "Amplitude" },
+      { "text": "Avg 2.4 support tickets per new account in week 1", "source": "Zendesk" }
+    ],
+    "research": [
+      { "text": "Users want to see how much is left before they start", "source": "UX interviews" },
+      { "text": "Non-technical owners delegate setup but the tool assumes one person", "source": "UX interviews", "confidence": "high" }
+    ]
+  },
+
+  "constraints": {
+    "risks": ["Billing API rate limits during peak signup", "Scope creep into full account settings"],
+    "assumptions": ["Most users start on desktop", "Email is verified before onboarding starts"],
+    "issues": ["Legacy accounts lack structured profile data"],
+    "dependencies": ["Payments team API for billing step", "Auth team for teammate invites"]
+  },
+
+  "collaborations": {
+    "overlaps": ["Growth team's referral onboarding work"],
+    "partnerships": ["Payments squad", "Lifecycle marketing (resume emails)"],
+    "forums": ["Weekly onboarding sync", "#proj-onboarding"]
+  },
+
+  "useCases": [
+    "First-time SMB signup, single admin",
+    "Owner delegates setup to an ops admin",
+    "Re-onboarding after a plan upgrade"
+  ],
+
+  "okrs": [
+    "O: Best-in-class SMB onboarding",
+    "KR1: Activation 55% -> 70%",
+    "KR2: Median setup time 40min -> <10min",
+    "KR3: Onboarding tickets -30%"
+  ],
+
+  "_intentionally_missing": "note: 'requirements' present but try deleting a key to confirm empty-section placeholder. 'collaborations.forums' etc all filled here.",
+
+  "extra": [
+    { "title": "Open Questions", "items": ["Do we hard-gate on payment?", "Mobile onboarding in scope for v1?", "What happens to half-finished sessions after 7 days?"] },
+    {
+      "title": "Parking Lot",
+      "children": [
+        { "title": "Later", "items": ["Localized onboarding", "In-product video walkthrough"] },
+        { "title": "Won't do (v1)", "items": ["Full white-label setup"] }
+      ]
+    }
+  ]
+}
