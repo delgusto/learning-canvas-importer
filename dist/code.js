@@ -71,7 +71,9 @@
   var MIN_SECTION_W = 380;
   var PER_COL = 5;
   var MAX_ROW_W = 5400;
+  var SOURCES_W = 520;
   var FONT = { family: "Inter", style: "Medium" };
+  var BOLD_FONT = { family: "Inter", style: "Bold" };
   var MAX_CHARS = 280;
   var STICKY_W = 240;
   function normItems(val) {
@@ -136,6 +138,7 @@
   }
   function buildTopSection(def, data, ox, oy) {
     var _a;
+    if (def.sources) return buildSourcesSection(def, ox, oy);
     const fill = (_a = PALETTE[def.colorKey]) != null ? _a : PALETTE.extra;
     const sec = figma.createSection();
     sec.name = def.title;
@@ -170,6 +173,7 @@
     return cols * STICKY_W + (cols - 1) * GAP_S;
   }
   function sectionWidth(def, data) {
+    if (def.sources) return SOURCES_W;
     if (def.children) {
       let w = PAD;
       for (const ch of def.children) {
@@ -199,19 +203,59 @@
     }));
   }
   function sourcesDefs(data) {
-    const src = Array.isArray(data.sources) ? data.sources : [];
+    const src = (Array.isArray(data.sources) ? data.sources : []).filter((s) => s && s.name);
     if (!src.length) return [];
-    const children = src.map((s, i) => {
-      const title = (s.name || "Source " + (i + 1)) + (s.date ? " \xB7 " + s.date : "");
-      const items = [];
-      if (s.url) items.push({ text: s.url, url: s.url });
-      if (Array.isArray(s.items)) items.push(...s.items);
-      return { key: "src" + i, title, _items: items };
+    return [{ key: "__sources", title: "Sources", colorKey: "slate", sources: src }];
+  }
+  function buildSourcesSection(def, ox, oy) {
+    const sec = figma.createSection();
+    sec.name = def.title;
+    sec.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }];
+    sec.x = ox;
+    sec.y = oy;
+    const tx = figma.createText();
+    tx.fontName = FONT;
+    tx.fontSize = 15;
+    tx.lineHeight = { value: 150, unit: "PERCENT" };
+    sec.appendChild(tx);
+    tx.x = PAD;
+    tx.y = SUBHEADER;
+    tx.resize(SOURCES_W - 2 * PAD, 10);
+    tx.textAutoResize = "HEIGHT";
+    const ranges = [];
+    let body = "";
+    (def.sources || []).forEach((s, i) => {
+      if (i > 0) body += "\n\n";
+      const titleStart = body.length;
+      body += (s.name || "Source " + (i + 1)) + (s.date ? " \xB7 " + s.date : "");
+      ranges.push({ start: titleStart, end: body.length, kind: "title" });
+      if (s.url) {
+        body += "\n" + s.url;
+        ranges.push({ start: body.length - s.url.length, end: body.length, kind: "link" });
+      }
+      const items = normItems(s.items);
+      for (const it of items) body += "\n\u2022  " + it.text;
+      if (!s.url && !items.length) body += "\n(no details captured)";
     });
-    return [{ key: "__sources", title: "Sources", colorKey: "slate", children }];
+    tx.characters = body;
+    for (const r of ranges) {
+      if (r.kind === "title") {
+        tx.setRangeFontName(r.start, r.end, BOLD_FONT);
+        tx.setRangeFontSize(r.start, r.end, 18);
+      } else {
+        tx.setRangeFills(r.start, r.end, [{ type: "SOLID", color: hex("#2563eb") }]);
+        try {
+          tx.setRangeHyperlink(r.start, r.end, { type: "URL", value: tx.characters.slice(r.start, r.end) });
+        } catch (e) {
+        }
+      }
+    }
+    sec.resizeWithoutConstraints(SOURCES_W, SUBHEADER + tx.height + PAD);
+    return sec;
   }
   async function buildLearningCanvas(data) {
     await figma.loadFontAsync(FONT);
+    await figma.loadFontAsync(BOLD_FONT);
     const defs = TEMPLATE.concat(extraDefs(data)).concat(sourcesDefs(data));
     const rows = [];
     let cur = [];

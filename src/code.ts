@@ -55,7 +55,7 @@ interface CanvasData {
 // ----------------------------------------------------------------------------
 
 interface ChildDef { key: string; title: string; _items?: Item[] }
-interface SectionDef { key: string; title: string; colorKey: string; children?: ChildDef[]; _items?: Item[] }
+interface SectionDef { key: string; title: string; colorKey: string; children?: ChildDef[]; _items?: Item[]; sources?: SourceEntry[] }
 
 const TEMPLATE: SectionDef[] = [
   { key: "projectSnapshot", title: "Project Snapshot", colorKey: "slate" },
@@ -131,7 +131,9 @@ const SUBHEADER = 52;    // top band in a leaf/sub section, below its label, bef
 const MIN_SECTION_W = 380; // floor on top-section width so titles don't truncate
 const PER_COL = 5;       // stickies per column before wrapping to a new column
 const MAX_ROW_W = 5400;  // board wraps top sections to a new row past this width
+const SOURCES_W = 520;   // fixed width of the Sources text section (it grows tall, not wide)
 const FONT: FontName = { family: "Inter", style: "Medium" };
+const BOLD_FONT: FontName = { family: "Inter", style: "Bold" }; // source titles in the text block
 const MAX_CHARS = 280;   // soft cap on sticky text length
 
 let STICKY_W = 240;      // measured from the first real sticky at runtime
@@ -221,6 +223,7 @@ function placeItems(container: SectionNode, raw: unknown, fill: Color, ox: numbe
 // setting section.x via the API does NOT carry child stickies along (unlike
 // dragging in the UI), so a build-then-move approach strands the stickies.
 function buildTopSection(def: SectionDef, data: CanvasData, ox: number, oy: number): SectionNode {
+  if (def.sources) return buildSourcesSection(def, ox, oy); // Sources is a text block, not stickies
   const fill = PALETTE[def.colorKey] ?? PALETTE.extra;
   const sec = figma.createSection();
   sec.name = def.title;
@@ -259,6 +262,7 @@ function leafInnerWidth(n: number): number {
   return cols * STICKY_W + (cols - 1) * GAP_S;
 }
 function sectionWidth(def: SectionDef, data: CanvasData): number {
+  if (def.sources) return SOURCES_W; // fixed-width text block
   if (def.children) {
     let w = PAD;
     for (const ch of def.children) {
@@ -294,20 +298,68 @@ function extraDefs(data: CanvasData): SectionDef[] {
   }));
 }
 
-// Turn data.sources[] into a single "Sources" section whose sub-sections are the
-// sources — titled "Name · Date", with a clickable link sticky (if a url is given)
-// followed by the data points pulled from that source.
+// Turn data.sources[] into a single "Sources" section. Rendered as ONE text block
+// (not stickies) so it reads as a distinct provenance list: bold "Name · Date"
+// headers, a clickable link line where a url exists, then bulleted data points.
 function sourcesDefs(data: CanvasData): SectionDef[] {
-  const src = Array.isArray(data.sources) ? data.sources : [];
+  const src = (Array.isArray(data.sources) ? data.sources : []).filter((s) => s && s.name);
   if (!src.length) return [];
-  const children: ChildDef[] = src.map((s, i) => {
-    const title = (s.name || "Source " + (i + 1)) + (s.date ? " · " + s.date : "");
-    const items: Item[] = [];
-    if (s.url) items.push({ text: s.url, url: s.url }); // first sticky = the link
-    if (Array.isArray(s.items)) items.push(...s.items);
-    return { key: "src" + i, title, _items: items };
+  return [{ key: "__sources", title: "Sources", colorKey: "slate", sources: src }];
+}
+
+// Build the Sources section as a single auto-height text node with rich ranges.
+// Real TextNodes support setRangeHyperlink reliably (sticky sublayers do not),
+// so links here are actually clickable.
+function buildSourcesSection(def: SectionDef, ox: number, oy: number): SectionNode {
+  const sec = figma.createSection();
+  sec.name = def.title;
+  sec.fills = [{ type: "SOLID", color: { r: 1, g: 1, b: 1 } }]; // clean white to stand apart
+  sec.x = ox;
+  sec.y = oy;
+
+  const tx = figma.createText();
+  tx.fontName = FONT;
+  tx.fontSize = 15;
+  tx.lineHeight = { value: 150, unit: "PERCENT" };
+  sec.appendChild(tx);
+  tx.x = PAD;
+  tx.y = SUBHEADER;
+  tx.resize(SOURCES_W - 2 * PAD, 10);
+  tx.textAutoResize = "HEIGHT"; // fixed width, grows down
+
+  // Assemble the string, recording ranges to style afterwards.
+  type Range = { start: number; end: number; kind: "title" | "link" };
+  const ranges: Range[] = [];
+  let body = "";
+  (def.sources || []).forEach((s, i) => {
+    if (i > 0) body += "\n\n";
+    const titleStart = body.length;
+    body += (s.name || "Source " + (i + 1)) + (s.date ? " · " + s.date : "");
+    ranges.push({ start: titleStart, end: body.length, kind: "title" });
+    if (s.url) {
+      body += "\n" + s.url;
+      ranges.push({ start: body.length - s.url.length, end: body.length, kind: "link" });
+    }
+    const items = normItems(s.items);
+    for (const it of items) body += "\n•  " + it.text;
+    if (!s.url && !items.length) body += "\n(no details captured)";
   });
-  return [{ key: "__sources", title: "Sources", colorKey: "slate", children }];
+  tx.characters = body;
+
+  for (const r of ranges) {
+    if (r.kind === "title") {
+      tx.setRangeFontName(r.start, r.end, BOLD_FONT);
+      tx.setRangeFontSize(r.start, r.end, 18);
+    } else {
+      tx.setRangeFills(r.start, r.end, [{ type: "SOLID", color: hex("#2563eb") }]);
+      try {
+        tx.setRangeHyperlink(r.start, r.end, { type: "URL", value: tx.characters.slice(r.start, r.end) });
+      } catch (e) { /* fall back to coloured but non-clickable URL text */ }
+    }
+  }
+
+  sec.resizeWithoutConstraints(SOURCES_W, SUBHEADER + tx.height + PAD);
+  return sec;
 }
 
 // ----------------------------------------------------------------------------
@@ -316,6 +368,7 @@ function sourcesDefs(data: CanvasData): SectionDef[] {
 
 async function buildLearningCanvas(data: CanvasData): Promise<void> {
   await figma.loadFontAsync(FONT); // required before setting any sticky text
+  await figma.loadFontAsync(BOLD_FONT); // for bold source titles in the Sources text block
 
   const defs = TEMPLATE.concat(extraDefs(data)).concat(sourcesDefs(data));
 

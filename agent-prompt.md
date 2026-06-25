@@ -31,9 +31,13 @@ a single JSON object that captures what's known. A FigJam plugin renders your JS
 7. Put anything that doesn't fit a fixed section into `extra[]` (see schema). Don't force-fit.
 8. Do not fabricate metrics, quotes, or sources. If unsure, lower the confidence or omit.
 9. **`sources[]` is the provenance trail.** List every source you actually drew from: its `name`,
-   a `date` if known, a `url` if there is one, and under `items` the specific data points you
-   pulled from it. The plugin renders each source as its own group with a clickable link sticky,
-   so a reader can trace any insight back to where it came from. Cite real sources only.
+   a `date` if known, a `url`, and under `items` the specific data points you pulled from it.
+   The plugin renders this as a distinct **text block** — bold "Name · Date" headers, the link,
+   then bulleted items — so a reader can trace any insight back to where it came from.
+   - **Always include `url` when the source has a shareable link** — a meeting-notes doc, dashboard,
+     ticket, recording, file, or page. Use the real, full URL (`https://…`).
+   - If a source genuinely has no link (e.g. a verbal conversation), omit `url` — items-only is fine.
+   - Cite real sources only; never invent a URL.
 
 ### Schema (fixed keys)
 
