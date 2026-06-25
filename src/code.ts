@@ -327,39 +327,53 @@ function buildSourcesSection(def: SectionDef, ox: number, oy: number): SectionNo
   tx.resize(SOURCES_W - 2 * PAD, 10);
   tx.textAutoResize = "HEIGHT"; // fixed width, grows down
 
-  // Assemble the string, recording ranges to style afterwards.
-  type Range = { start: number; end: number; kind: "title" | "link" };
-  const ranges: Range[] = [];
+  // Assemble the string, recording title ranges to bold afterwards. A `url` field
+  // (if present) goes on its own line; URLs the agent embedded inside item text are
+  // handled by the auto-linkify pass below, so they work no matter where they sit.
+  const titleRanges: { start: number; end: number }[] = [];
   let body = "";
   (def.sources || []).forEach((s, i) => {
     if (i > 0) body += "\n\n";
     const titleStart = body.length;
     body += (s.name || "Source " + (i + 1)) + (s.date ? " · " + s.date : "");
-    ranges.push({ start: titleStart, end: body.length, kind: "title" });
-    if (s.url) {
-      body += "\n" + s.url;
-      ranges.push({ start: body.length - s.url.length, end: body.length, kind: "link" });
-    }
+    titleRanges.push({ start: titleStart, end: body.length });
+    if (s.url) body += "\n" + s.url;
     const items = normItems(s.items);
     for (const it of items) body += "\n•  " + it.text;
     if (!s.url && !items.length) body += "\n(no details captured)";
   });
   tx.characters = body;
 
-  for (const r of ranges) {
-    if (r.kind === "title") {
-      tx.setRangeFontName(r.start, r.end, BOLD_FONT);
-      tx.setRangeFontSize(r.start, r.end, 18);
-    } else {
-      tx.setRangeFills(r.start, r.end, [{ type: "SOLID", color: hex("#2563eb") }]);
-      try {
-        tx.setRangeHyperlink(r.start, r.end, { type: "URL", value: tx.characters.slice(r.start, r.end) });
-      } catch (e) { /* fall back to coloured but non-clickable URL text */ }
-    }
+  for (const r of titleRanges) {
+    tx.setRangeFontName(r.start, r.end, BOLD_FONT);
+    tx.setRangeFontSize(r.start, r.end, 18);
+  }
+
+  // Auto-linkify every URL in the text — whether the agent used a `url` field or
+  // just pasted the link inline in an item. This is what makes links actually appear.
+  for (const u of findUrlRanges(body)) {
+    tx.setRangeFills(u.start, u.end, [{ type: "SOLID", color: hex("#2563eb") }]);
+    try {
+      tx.setRangeHyperlink(u.start, u.end, { type: "URL", value: u.url });
+    } catch (e) { /* fall back to coloured but non-clickable URL text */ }
   }
 
   sec.resizeWithoutConstraints(SOURCES_W, SUBHEADER + tx.height + PAD);
   return sec;
+}
+
+// Find http(s) URLs in a string, trimming trailing punctuation so a link at the
+// end of a sentence doesn't swallow the period/comma.
+function findUrlRanges(s: string): { start: number; end: number; url: string }[] {
+  const re = /https?:\/\/[^\s<>()[\]]+/g;
+  const out: { start: number; end: number; url: string }[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(s)) !== null) {
+    let end = m.index + m[0].length;
+    while (end > m.index && ".,;:!?".indexOf(s[end - 1]) !== -1) end--;
+    out.push({ start: m.index, end, url: s.slice(m.index, end) });
+  }
+  return out;
 }
 
 // ----------------------------------------------------------------------------
