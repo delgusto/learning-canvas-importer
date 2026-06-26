@@ -36,8 +36,14 @@ a single JSON object that captures what's known. A FigJam plugin renders your JS
    then bulleted items — so a reader can trace any insight back to where it came from.
    - **Always include `url` when the source has a shareable link** — a meeting-notes doc, dashboard,
      ticket, recording, file, or page. Use the real, full URL (`https://…`).
-   - If a source genuinely has no link (e.g. a verbal conversation), omit `url` — items-only is fine.
-   - Cite real sources only; never invent a URL.
+   - **Include the deep link when you have access to it** — a Microsoft Loop page, Outlook/Teams
+     message, OneNote, SharePoint/Confluence doc, or any item you opened to gather the content.
+     Paste the real `https://…` permalink (in the `url` field, or inline in the item text — both
+     get linked). If an item references a person, you may include their email address; it becomes
+     a clickable `mailto:` link.
+   - If a source genuinely has no shareable link (e.g. a private note or verbal conversation),
+     omit the URL — items-only is fine. Never invent or guess a URL.
+   - Cite real sources only.
 
 ### Schema (fixed keys)
 

@@ -349,13 +349,13 @@ function buildSourcesSection(def: SectionDef, ox: number, oy: number): SectionNo
     tx.setRangeFontSize(r.start, r.end, 18);
   }
 
-  // Auto-linkify every URL in the text — whether the agent used a `url` field or
-  // just pasted the link inline in an item. This is what makes links actually appear.
-  for (const u of findUrlRanges(body)) {
+  // Auto-linkify every URL and email in the text — whether the agent used a `url`
+  // field or pasted links/addresses inline. This is what makes links actually appear.
+  for (const u of findLinkRanges(body)) {
     tx.setRangeFills(u.start, u.end, [{ type: "SOLID", color: hex("#2563eb") }]);
     try {
-      tx.setRangeHyperlink(u.start, u.end, { type: "URL", value: u.url });
-    } catch (e) { /* fall back to coloured but non-clickable URL text */ }
+      tx.setRangeHyperlink(u.start, u.end, { type: "URL", value: u.href });
+    } catch (e) { /* fall back to coloured but non-clickable text */ }
   }
 
   sec.resizeWithoutConstraints(SOURCES_W, SUBHEADER + tx.height + PAD);
@@ -374,6 +374,21 @@ function findUrlRanges(s: string): { start: number; end: number; url: string }[]
     out.push({ start: m.index, end, url: s.slice(m.index, end) });
   }
   return out;
+}
+
+// All clickable ranges in a string: http(s) URLs, plus bare email addresses turned
+// into mailto: links. Emails inside a URL (e.g. user@host in a link) are skipped.
+function findLinkRanges(s: string): { start: number; end: number; href: string }[] {
+  const ranges = findUrlRanges(s).map((u) => ({ start: u.start, end: u.end, href: u.url }));
+  const emailRe = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
+  let m: RegExpExecArray | null;
+  while ((m = emailRe.exec(s)) !== null) {
+    const start = m.index;
+    const end = m.index + m[0].length;
+    const overlaps = ranges.some((r) => start < r.end && end > r.start); // already inside a URL
+    if (!overlaps) ranges.push({ start, end, href: "mailto:" + m[0] });
+  }
+  return ranges;
 }
 
 // ----------------------------------------------------------------------------
